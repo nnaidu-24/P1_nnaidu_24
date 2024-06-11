@@ -1,27 +1,26 @@
 #include <cassert>
 #include "nse_structs.h"
 #include "orderbook.h"
+#include <iostream>
 
-void orderbook::add_order( order_message &ord ) {
+void orderbook::add_order( order_message_t &ord ) {
   order_t temp;
-  temp.price     = ord.price;
-  temp.timestamp = ord.time_stamp;
-  temp.order_id  = ord.order_id;
-  temp.qty       = ord.qty;
+  temp.price     = ord.m_price__;
+  temp.timestamp = ord.m_time_stamp__;
+  temp.order_id  = ord.m_order_id__;
+  temp.qty       = ord.m_qty__;
 
-  
-
-  if ( ord.order_type == multicast_tbt_order_types::Buy ) {
+  if ( ord.m_order_type__ == multicast_tbt_order_types_t::Buy ) {
     if ( temp.price >= get_top_ask() ) {
-     active_bids.insert( { temp.order_id, temp } );
+      active_bids.insert( { temp.order_id, temp } );
     } else {
       bid_ob.insert( { { temp.price, temp.timestamp }, temp } );
       order_price[temp.order_id] = temp.price;
     }
 
-  } else if ( ord.order_type == multicast_tbt_order_types::Sell ) {
+  } else if ( ord.m_order_type__ == multicast_tbt_order_types_t::Sell ) {
     if ( temp.price <= get_top_bid() ) {
-     active_asks.insert( { temp.order_id, temp } );
+      active_asks.insert( { temp.order_id, temp } );
     } else {
       ask_ob.insert( { { temp.price, temp.timestamp }, temp } );
       order_price[temp.order_id] = temp.price;
@@ -29,16 +28,16 @@ void orderbook::add_order( order_message &ord ) {
   }
 };
 
-void orderbook::cancel_order( order_message &ord ) {
-  auto it = order_price.find( ord.order_id );
+void orderbook::cancel_order( order_message_t &ord ) {
+  auto it = order_price.find( ord.m_order_id__ );
 
   if ( it == order_price.end() ) return;
 
-  int32_t price = ( *it ).second;
+  int32_t price = it->second;
 
   order_price.erase( it );
 
-  if ( ord.order_type == multicast_tbt_order_types::Buy ) {
+  if ( ord.m_order_type__ == multicast_tbt_order_types_t::Buy ) {
     auto price_level = bid_ob.lower_bound( { price, 0LL } );
 
     while ( price_level != bid_ob.end() ) {
@@ -46,14 +45,14 @@ void orderbook::cancel_order( order_message &ord ) {
       double_t curr_id    = ( *price_level ).second.order_id;
       assert( curr_price == price );
 
-      if ( ord.order_id == curr_id ) {
+      if ( ord.m_order_id__ == curr_id ) {
         bid_ob.erase( price_level );
         break;
       } else {
         price_level++;
       }
     }
-  } else if ( ord.order_type == multicast_tbt_order_types::Sell ) {
+  } else if ( ord.m_order_type__ == multicast_tbt_order_types_t::Sell ) {
     auto price_level = ask_ob.lower_bound( { price, 0LL } );
 
     while ( price_level != ask_ob.end() ) {
@@ -61,7 +60,7 @@ void orderbook::cancel_order( order_message &ord ) {
       double_t curr_id    = ( *price_level ).second.order_id;
       assert( curr_price == price );
 
-      if ( ord.order_id == curr_id ) {
+      if ( ord.m_order_id__ == curr_id ) {
         ask_ob.erase( price_level );
         break;
       } else {
@@ -71,17 +70,17 @@ void orderbook::cancel_order( order_message &ord ) {
   }
 }
 
-void orderbook::modify_order( order_message &ord ) {
+void orderbook::modify_order( order_message_t &ord ) {
   order_t temp;
-  temp.price     = ord.price;
-  temp.timestamp = ord.time_stamp;
-  temp.order_id  = ord.order_id;
-  temp.qty       = ord.qty;
+  temp.price     = ord.m_price__;
+  temp.timestamp = ord.m_time_stamp__;
+  temp.order_id  = ord.m_order_id__;
+  temp.qty       = ord.m_qty__;
 
-  auto it = order_price.find( ord.order_id );
+  auto it = order_price.find( ord.m_order_id__ );
 
   if ( it == order_price.end() ) {
-    add_order(ord);
+    add_order( ord );
     return;
   }
 
@@ -89,7 +88,7 @@ void orderbook::modify_order( order_message &ord ) {
 
   order_price.erase( it );
 
-  if ( ord.order_type == multicast_tbt_order_types::Buy ) {
+  if ( ord.m_order_type__ == multicast_tbt_order_types_t::Buy ) {
     auto price_level = bid_ob.lower_bound( { price, 0LL } );
 
     while ( price_level != bid_ob.end() ) {
@@ -97,18 +96,18 @@ void orderbook::modify_order( order_message &ord ) {
       double_t curr_id    = ( *price_level ).second.order_id;
       assert( curr_price == price );
 
-      if ( ord.order_id == curr_id ) {
+      if ( ord.m_order_id__ == curr_id ) {
         bid_ob.erase( price_level );
         break;
       } else {
         price_level++;
       }
     }
-         add_order(ord);
+    add_order( ord );
     // bid_ob.insert( { { temp.price, temp.timestamp }, temp } );
     // order_price[temp.order_id] = temp.price;
 
-  } else if ( ord.order_type == multicast_tbt_order_types::Sell ) {
+  } else if ( ord.m_order_type__ == multicast_tbt_order_types_t::Sell ) {
     auto price_level = ask_ob.lower_bound( { price, 0LL } );
 
     while ( price_level != ask_ob.end() ) {
@@ -116,22 +115,22 @@ void orderbook::modify_order( order_message &ord ) {
       double_t curr_id    = ( *price_level ).second.order_id;
       assert( curr_price == price );
 
-      if ( ord.order_id == curr_id ) {
+      if ( ord.m_order_id__ == curr_id ) {
         ask_ob.erase( price_level );
         break;
       } else {
         price_level++;
       }
     }
-       add_order(ord);
+    add_order( ord );
     // ask_ob.insert( { { temp.price, temp.timestamp }, temp } );
     // order_price[temp.order_id] = temp.price;
   }
 }
 
-void orderbook::process_transaction( trade_message &trd ) {
-  double_t bid_id = trd.buy_order_id;
-  double_t ask_id = trd.sell_order_id;
+void orderbook::process_transaction( trade_message_t &trd ) {
+  double_t bid_id = trd.m_buy_order_id__;
+  double_t ask_id = trd.m_sell_order_id__;
 
   if ( bid_id != 0 ) {
     auto it = order_price.find( bid_id );
@@ -147,7 +146,7 @@ void orderbook::process_transaction( trade_message &trd ) {
         assert( curr_price == price );
 
         if ( bid_id == curr_id ) {
-          ( *price_level ).second.order_id -= trd.trade_qty;
+          ( *price_level ).second.order_id -= trd.m_trade_qty__;
           assert( ( *price_level ).second.order_id >= 0 );
           if ( ( *price_level ).second.order_id == 0 ) {
             bid_ob.erase( price_level );
@@ -161,7 +160,7 @@ void orderbook::process_transaction( trade_message &trd ) {
     } else if ( active_bids.find( bid_id ) != active_bids.end() ) {
       auto it = active_bids.find( bid_id );
 
-      ( *it ).second.qty -= trd.trade_qty;
+      ( *it ).second.qty -= trd.m_trade_qty__;
       assert( ( *it ).second.qty >= 0 );
 
       if ( ( *it ).second.qty == 0 ) {
@@ -169,7 +168,7 @@ void orderbook::process_transaction( trade_message &trd ) {
       } else if ( ( *it ).second.price < get_top_ask() ) {
         order_t ord = ( *it ).second;
         bid_ob.insert( { { ord.price, ord.timestamp }, ord } );
-        order_price[ord.order_id] = ord.price ;
+        order_price[ord.order_id] = ord.price;
       }
     }
   }
@@ -188,7 +187,7 @@ void orderbook::process_transaction( trade_message &trd ) {
         assert( curr_price == price );
 
         if ( ask_id == curr_id ) {
-          ( *price_level ).second.order_id -= trd.trade_qty;
+          ( *price_level ).second.order_id -= trd.m_trade_qty__;
           assert( ( *price_level ).second.order_id >= 0 );
           if ( ( *price_level ).second.order_id == 0 ) {
             ask_ob.erase( price_level );
@@ -202,7 +201,7 @@ void orderbook::process_transaction( trade_message &trd ) {
     } else if ( active_asks.find( ask_id ) != active_asks.end() ) {
       auto it = active_asks.find( ask_id );
 
-      ( *it ).second.qty -= trd.trade_qty;
+      ( *it ).second.qty -= trd.m_trade_qty__;
       assert( ( *it ).second.qty >= 0 );
 
       if ( ( *it ).second.qty == 0 ) {
@@ -210,7 +209,7 @@ void orderbook::process_transaction( trade_message &trd ) {
       } else if ( ( *it ).second.price > get_top_bid() ) {
         order_t ord = ( *it ).second;
         ask_ob.insert( { { ord.price, ord.timestamp }, ord } );
-        order_price[ord.order_id] = ord.price ;
+        order_price[ord.order_id] = ord.price;
       }
     }
   }
@@ -281,6 +280,4 @@ int32_t orderbook::get_top_ask() {
   return bid;
 }
 
-int32_t orderbook::get_total_orders() {
-  return bid_ob.size() + ask_ob.size() ;
-}
+int32_t orderbook::get_total_orders() { return bid_ob.size() + ask_ob.size(); }

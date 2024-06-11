@@ -1,45 +1,43 @@
 #ifndef P1V2_LIB_HEADERS_NSE_STRUCTS_H_
 #define P1V2_LIB_HEADERS_NSE_STRUCTS_H_
-#include <bits/stdc++.h>
-
+#include <stdint.h>
+#include <math.h>
 
 const int header_size = 8;
 
-#pragma pack( 1 )
 struct header_t {
-  short    msg_len;
-  short    stream_id;
+  int16_t  msg_len;
+  int16_t  stream_id;
   uint32_t seq_no;
-};
+} __attribute__( ( packed ) );
 
 static_assert( header_size == sizeof( header_t ) );
 
-
-struct trade_message {
-  int8_t   msg_type;
-  int64_t  time_stamp;
-  double_t buy_order_id;
-  double_t sell_order_id;
-  int32_t  token;
-  int32_t  trade_price;
-  int32_t  trade_qty;
+struct trade_message_t {
+  int8_t   m_msg_type__;
+  int64_t  m_time_stamp__;
+  double_t m_buy_order_id__;
+  double_t m_sell_order_id__;
+  int32_t  m_token__;
+  int32_t  m_trade_price__;
+  int32_t  m_trade_qty__;
 } __attribute__( ( packed ) );
 
 /**
  * This  struct defines the structure to store the new/modify/cancel orders
  * received from the multicast tbt feed
  */
-struct order_message {
-  int8_t   msg_type;
-  int64_t  time_stamp;
-  double_t order_id;
-  int32_t  token;
-  int8_t   order_type;
-  int32_t  price;
-  int32_t  qty;
+struct order_message_t {
+  int8_t   m_msg_type__;
+  int64_t  m_time_stamp__;
+  double_t m_order_id__;
+  int32_t  m_token__;
+  int8_t   m_order_type__;
+  int32_t  m_price__;
+  int32_t  m_qty__;
 } __attribute__( ( packed ) );
 
-struct multicast_tbt_message_types {
+struct multicast_tbt_message_types_t {
   static const int8_t NewOrder          = 'N';
   static const int8_t ModificationOrder = 'M';
   static const int8_t CancelOrder       = 'X';
@@ -48,7 +46,7 @@ struct multicast_tbt_message_types {
 
 /*Order types*/
 
-struct multicast_tbt_order_types {
+struct multicast_tbt_order_types_t {
   static const int8_t Buy  = 'B';
   static const int8_t Sell = 'S';
 };
