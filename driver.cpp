@@ -1,3 +1,7 @@
+/* Author: YSS Narasimha Naidu
+   Date: June 10th 2024 
+   Purpose: generating orderbook from split data
+*/
 #include <cassert>
 #include <fstream>
 #include <iostream>
