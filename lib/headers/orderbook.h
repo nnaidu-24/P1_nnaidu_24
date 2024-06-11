@@ -10,6 +10,8 @@ struct order_t {
   int32_t  price;
   int32_t  qty;
 };
+
+typedef std::pair<int32_t, int64_t> price_timestamp;
 class orderbook {
  public:
   void add_order( order_message_t& ord );
@@ -25,8 +27,8 @@ class orderbook {
 
  private:
   struct bidcomparator {
-    bool operator()( const std::pair<int32_t, int64_t>& a,
-                     const std::pair<int32_t, int64_t>& b ) const {
+    bool operator()( const price_timestamp& a,
+                     const price_timestamp& b ) const {
       if ( a.first != b.first ) {
         return a.first > b.first;
       }
@@ -36,8 +38,8 @@ class orderbook {
   };
 
   struct askcomparator {
-    bool operator()( const std::pair<int32_t, int64_t>& a,
-                     const std::pair<int32_t, int64_t>& b ) const {
+    bool operator()( const price_timestamp& a,
+                     const price_timestamp& b ) const {
       if ( a.first != b.first ) {
         return a.first < b.first;
       }
@@ -45,9 +47,9 @@ class orderbook {
       return a.second < b.second;
     }
   };
-  std::map<std::pair<int32_t, int64_t>, order_t, bidcomparator> bid_ob;
-  std::map<std::pair<int32_t, int64_t>, order_t, askcomparator> ask_ob;
-  std::map<double_t, int32_t>                                   order_price;
+  std::map<price_timestamp, order_t, bidcomparator> bid_ob;
+  std::map<price_timestamp, order_t, askcomparator> ask_ob;
+  std::map<double_t, int32_t>                       order_price;
 
   std::unordered_map<double_t, order_t> active_bids;
   std::unordered_map<double_t, order_t> active_asks;

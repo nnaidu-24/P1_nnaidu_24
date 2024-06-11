@@ -41,8 +41,8 @@ void orderbook::cancel_order( order_message_t &ord ) {
     auto price_level = bid_ob.lower_bound( { price, 0LL } );
 
     while ( price_level != bid_ob.end() ) {
-      int32_t  curr_price = ( *price_level ).first.first;
-      double_t curr_id    = ( *price_level ).second.order_id;
+      int32_t  curr_price = ( price_level->first ).first;
+      double_t curr_id    = ( price_level->second ).order_id;
       assert( curr_price == price );
 
       if ( ord.m_order_id__ == curr_id ) {
@@ -56,8 +56,8 @@ void orderbook::cancel_order( order_message_t &ord ) {
     auto price_level = ask_ob.lower_bound( { price, 0LL } );
 
     while ( price_level != ask_ob.end() ) {
-      int32_t  curr_price = ( *price_level ).first.first;
-      double_t curr_id    = ( *price_level ).second.order_id;
+      int32_t  curr_price = ( price_level->first ).first;
+      double_t curr_id    = ( price_level->second ).order_id;
       assert( curr_price == price );
 
       if ( ord.m_order_id__ == curr_id ) {
@@ -84,7 +84,7 @@ void orderbook::modify_order( order_message_t &ord ) {
     return;
   }
 
-  int32_t price = ( *it ).second;
+  int32_t price = it->second;
 
   order_price.erase( it );
 
@@ -92,8 +92,8 @@ void orderbook::modify_order( order_message_t &ord ) {
     auto price_level = bid_ob.lower_bound( { price, 0LL } );
 
     while ( price_level != bid_ob.end() ) {
-      int32_t  curr_price = ( *price_level ).first.first;
-      double_t curr_id    = ( *price_level ).second.order_id;
+      int32_t  curr_price = ( price_level->first ).first;
+      double_t curr_id    = ( price_level->second ).order_id;
       assert( curr_price == price );
 
       if ( ord.m_order_id__ == curr_id ) {
@@ -111,8 +111,8 @@ void orderbook::modify_order( order_message_t &ord ) {
     auto price_level = ask_ob.lower_bound( { price, 0LL } );
 
     while ( price_level != ask_ob.end() ) {
-      int32_t  curr_price = ( *price_level ).first.first;
-      double_t curr_id    = ( *price_level ).second.order_id;
+      int32_t  curr_price = ( price_level->first ).first;
+      double_t curr_id    = ( price_level->second ).order_id;
       assert( curr_price == price );
 
       if ( ord.m_order_id__ == curr_id ) {
@@ -131,24 +131,25 @@ void orderbook::modify_order( order_message_t &ord ) {
 void orderbook::process_transaction( trade_message_t &trd ) {
   double_t bid_id = trd.m_buy_order_id__;
   double_t ask_id = trd.m_sell_order_id__;
-
+  // Checking if the bid id is valid
   if ( bid_id != 0 ) {
-    auto it = order_price.find( bid_id );
-
+    auto it             = order_price.find( bid_id );
+    auto active_bids_it = active_bids.find( bid_id );
+    // checking if the bid_id is present in orderbook
     if ( it != order_price.end() ) {
-      int32_t price = ( *it ).second;
+      int32_t price = it->second;
 
       auto price_level = bid_ob.lower_bound( { price, 0LL } );
 
       while ( price_level != bid_ob.end() ) {
-        int32_t  curr_price = ( *price_level ).first.first;
-        double_t curr_id    = ( *price_level ).second.order_id;
+        int32_t  curr_price = ( price_level->first ).first;
+        double_t curr_id    = ( price_level->second ).order_id;
         assert( curr_price == price );
 
         if ( bid_id == curr_id ) {
-          ( *price_level ).second.order_id -= trd.m_trade_qty__;
-          assert( ( *price_level ).second.order_id >= 0 );
-          if ( ( *price_level ).second.order_id == 0 ) {
+          price_level->second.order_id -= trd.m_trade_qty__;
+          assert( price_level->second.order_id >= 0 );
+          if ( ( price_level->second ).order_id == 0 ) {
             bid_ob.erase( price_level );
             order_price.erase( it );
           }
@@ -157,39 +158,41 @@ void orderbook::process_transaction( trade_message_t &trd ) {
           price_level++;
         }
       }
-    } else if ( active_bids.find( bid_id ) != active_bids.end() ) {
-      auto it = active_bids.find( bid_id );
+    }  // Checking if the bid id is an active order
+    else if ( active_bids_it != active_bids.end() ) {
+      auto it = active_bids_it;
 
-      ( *it ).second.qty -= trd.m_trade_qty__;
-      assert( ( *it ).second.qty >= 0 );
+      ( it->second ).qty -= trd.m_trade_qty__;
+      assert( ( it->second ).qty >= 0 );
 
-      if ( ( *it ).second.qty == 0 ) {
+      if ( it->second.qty == 0 ) {
         active_bids.erase( it );
-      } else if ( ( *it ).second.price < get_top_ask() ) {
-        order_t ord = ( *it ).second;
+      } else if ( ( it->second ).price < get_top_ask() ) {
+        order_t ord = it->second;
         bid_ob.insert( { { ord.price, ord.timestamp }, ord } );
         order_price[ord.order_id] = ord.price;
       }
     }
   }
-
+  // checking if the ask id is valid
   if ( ask_id != 0 ) {
-    auto it = order_price.find( ask_id );
-
+    auto it             = order_price.find( ask_id );
+    auto active_asks_it = active_asks.find( ask_id );
+    // Checking if the ask_id is present in orderbook
     if ( it != order_price.end() ) {
-      int32_t price = ( *it ).second;
+      int32_t price = it->second;
 
       auto price_level = ask_ob.lower_bound( { price, 0LL } );
 
       while ( price_level != ask_ob.end() ) {
-        int32_t  curr_price = ( *price_level ).first.first;
-        double_t curr_id    = ( *price_level ).second.order_id;
+        int32_t  curr_price = ( price_level->first ).first;
+        double_t curr_id    = ( price_level->second ).order_id;
         assert( curr_price == price );
 
         if ( ask_id == curr_id ) {
-          ( *price_level ).second.order_id -= trd.m_trade_qty__;
-          assert( ( *price_level ).second.order_id >= 0 );
-          if ( ( *price_level ).second.order_id == 0 ) {
+          ( price_level->second ).order_id -= trd.m_trade_qty__;
+          assert( ( price_level->second ).order_id >= 0 );
+          if ( ( price_level->second ).order_id == 0 ) {
             ask_ob.erase( price_level );
             order_price.erase( it );
           }
@@ -198,16 +201,17 @@ void orderbook::process_transaction( trade_message_t &trd ) {
           price_level++;
         }
       }
-    } else if ( active_asks.find( ask_id ) != active_asks.end() ) {
-      auto it = active_asks.find( ask_id );
+    }  // Checking if the ask_id is an active order
+    else if ( active_asks_it != active_asks.end() ) {
+      auto it = active_asks_it;
 
-      ( *it ).second.qty -= trd.m_trade_qty__;
-      assert( ( *it ).second.qty >= 0 );
+      ( it->second ).qty -= trd.m_trade_qty__;
+      assert( ( it->second ).qty >= 0 );
 
-      if ( ( *it ).second.qty == 0 ) {
+      if ( ( it->second ).qty == 0 ) {
         active_asks.erase( it );
-      } else if ( ( *it ).second.price > get_top_bid() ) {
-        order_t ord = ( *it ).second;
+      } else if ( ( it->second ).price > get_top_bid() ) {
+        order_t ord = ( it->second );
         ask_ob.insert( { { ord.price, ord.timestamp }, ord } );
         order_price[ord.order_id] = ord.price;
       }
@@ -253,9 +257,9 @@ int32_t orderbook::get_top_bid() {
   auto    it  = bid_ob.begin();
 
   while ( it != bid_ob.end() ) {
-    double_t curr_id = ( *it ).second.order_id;
+    double_t curr_id = ( it->second ).order_id;
 
-    bid = ( *it ).first.first;
+    bid = ( it->first ).first;
     break;
 
     it++;
@@ -269,9 +273,9 @@ int32_t orderbook::get_top_ask() {
   auto    it  = ask_ob.begin();
 
   while ( it != ask_ob.end() ) {
-    double_t curr_id = ( *it ).second.order_id;
+    double_t curr_id = ( it->second ).order_id;
 
-    bid = ( *it ).first.first;
+    bid = ( it->first ).first;
     break;
 
     it++;
